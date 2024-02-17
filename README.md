@@ -11,6 +11,8 @@ A small package that implements NodeJS like events construct in Go, with support
 
 Go 1.18 or newer version is required; the full documentation is at [https://pkg.go.dev/github.com/ghoshRitesh12/govents](https://pkg.go.dev/github.com/ghoshRitesh12/govents)
 
+I think I wrote a [banger of an article](https://riteshghosh.hashnode.dev/govents-nodejs-like-event-emitter-for-go) up at Hashnode; go check it out if interested.
+
 ## Usage
 
 A basic example:
@@ -44,7 +46,6 @@ func main() {
 		sample.Emit("data", rand.Intn(21), rand.Intn(21), rand.Intn(21))
 	}
 }
-
 ```
 
 Output for the code above:
