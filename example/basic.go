@@ -8,7 +8,7 @@ import (
 	"github.com/ghoshRitesh12/govents"
 )
 
-func main() {
+func Basic() {
 	sample := govents.NewEventEmitter[int]()
 	strs := []string{}
 
@@ -16,7 +16,7 @@ func main() {
 		for _, val := range vals {
 			strs = append(strs, fmt.Sprintf("v%d", val))
 		}
-		fmt.Println("inside eventListener", strs)
+		fmt.Println("within eventListener", strs)
 	})
 
 	fmt.Println("outside eventListener", strs)
