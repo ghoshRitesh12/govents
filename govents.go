@@ -1,105 +1,170 @@
 package govents
 
 import (
-	"errors"
-	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
+type EventEmitter[T comparable] struct {
+	// maxListeners(default 10) are always less than 1
+	maxEventListeners int32
+	ch                chan eventChannel[T]
+	emux              *sync.Mutex
+	events            map[string]event[T]
+}
+
 type (
-	EventEmitter[T comparable] interface {
-		On(string, func(...T)) error
-		Emit(string, ...T) error
-		Off(string) error              // TODO
-		Once(string, func(...T)) error // TODO
-		RemoveAllListeners() error     // TODO
+	Listener[T comparable] func(vals ...T)
 
-		// Listeners(eventName string) []listeners
-		GetEventNames() []string // TODO
-		Len() int                // TODO
-
-		GetMaxListeners() int      // TODO
-		SetMaxListeners(int) error // TODO
+	event[T comparable] struct {
+		isOnce bool
+		cb     Listener[T]
 	}
 
-	EventChannel[T comparable] struct {
+	eventChannel[T comparable] struct {
 		eventName string
 		cbFnArgs  []T
 	}
-
-	Event[T comparable] struct {
-		noOfEvents int
-		maxEvents  int
-		_ch        chan EventChannel[T]
-		eventMut   *sync.Mutex
-		events     map[string]func(vals ...T)
-	}
 )
 
-func NewEventEmitter[T comparable]() *Event[T] {
-	eventEmitter := &Event[T]{
-		noOfEvents: 0,
-		maxEvents:  10,
-		eventMut:   &sync.Mutex{},
-		events:     make(map[string]func(vals ...T)),
+func NewEventEmitter[T comparable]() *EventEmitter[T] {
+	eventEmitter := &EventEmitter[T]{
+		maxEventListeners: 11,
+		emux:              &sync.Mutex{},
+		events:            make(map[string]event[T]),
 	}
 
-	eventEmitter._ch = make(
-		chan EventChannel[T],
-		eventEmitter.maxEvents,
+	eventEmitter.ch = make(
+		chan eventChannel[T],
 	)
 
-	go func() {
-		for e := range eventEmitter._ch {
-			eventCb, ok := eventEmitter.events[e.eventName]
-			if !ok {
-				// fmt.Errorf("no event with name %v is registered", e.eventName)
-				continue
-			}
-
-			eventCb(e.cbFnArgs...)
-		}
-	}()
+	go listenTo[T](eventEmitter)
 
 	return eventEmitter
 }
 
-func (e *Event[T]) On(eventName string, callbackFn func(vals ...T)) error {
-	if eventName == "" {
-		return errors.New("no event name found when registering event listener")
+// Registers an event with *eventName* as name and its listener as *cb*.
+func (e *EventEmitter[T]) On(eventName string, cb Listener[T]) error {
+	e.emux.Lock()
+	defer e.emux.Unlock()
+
+	event, err := initEvent[T](e, eventName, cb, false)
+	if err != nil {
+		return err
 	}
 
-	e.eventMut.Lock()
-	defer e.eventMut.Unlock()
-
-	if e.noOfEvents == e.maxEvents {
-		close(e._ch)
-		return errors.New("max number of events reached")
-	}
-
-	e.noOfEvents += 1
-	e.events[eventName] = callbackFn
-
+	e.events[eventName] = event
 	return nil
 }
 
-func (e *Event[T]) Emit(eventName string, vals ...T) error {
-	if eventName == "" {
-		return errors.New("no event name found when emitting event")
+// Registers an event with *eventName* as name and its listener as *cb*, that runs only once.
+// Duplicate calls will lead in an event doesn't exist error.
+func (e *EventEmitter[T]) Once(eventName string, cb Listener[T]) error {
+	e.emux.Lock()
+	defer e.emux.Unlock()
+
+	event, err := initEvent[T](e, eventName, cb, true)
+	if err != nil {
+		return err
 	}
 
-	e.eventMut.Lock()
-	defer e.eventMut.Unlock()
+	e.events[eventName] = event
+	return nil
+}
+
+// Emits or calls event named *eventName* and *vals* as arguments.
+func (e *EventEmitter[T]) Emit(eventName string, vals ...T) error {
+	e.emux.Lock()
+	defer e.emux.Unlock()
+
+	if eventName == "" {
+		return ErrNoEventName
+	}
 
 	_, ok := e.events[eventName]
 	if !ok {
-		return fmt.Errorf("no event with name %v is registered", eventName)
+		return ErrNoEventFound(eventName)
 	}
 
-	e._ch <- EventChannel[T]{
+	if e.Len() >= e.maxEventListeners {
+		close(e.ch)
+		return ErrMaxListenerLimit
+	}
+
+	e.ch <- eventChannel[T]{
 		eventName: eventName,
 		cbFnArgs:  vals,
 	}
 
 	return nil
+}
+
+// Removes event listener associated with *eventName*.
+func (e *EventEmitter[T]) Off(eventName string) {
+	e.emux.Lock()
+	defer e.emux.Unlock()
+
+	delete(e.events, eventName)
+}
+
+// Registers an event with *eventName* as name and its listener as *cb*.
+// Alias for eventEmitter.On() method.
+func (e *EventEmitter[T]) AddEventListener(eventName string, cb Listener[T]) error {
+	return e.On(eventName, cb)
+}
+
+// Removes event listener associated with *eventName*.
+// Alias for eventEmitter.Off() method.
+func (e *EventEmitter[T]) RemoveEventListener(eventName string) {
+	e.Off(eventName)
+}
+
+// Removes all registered event listeners for an EventEmitter.
+func (e *EventEmitter[T]) RemoveAllListeners() {
+	e.emux.Lock()
+	defer e.emux.Unlock()
+
+	allEventNames := e.GetEventNames()
+
+	if len(allEventNames) < 1 {
+		return
+	}
+
+	for _, eventName := range allEventNames {
+		delete(e.events, eventName)
+	}
+}
+
+// Gets number of event listeners registered for an EventEmitter.
+func (e *EventEmitter[T]) Len() int32 {
+	length := int32(len(e.events))
+	return atomic.LoadInt32(&length)
+}
+
+// Gets registered event names for an EventEmitter.
+func (e *EventEmitter[T]) GetEventNames() []string {
+	e.emux.Lock()
+	defer e.emux.Unlock()
+
+	allEventNames := []string{}
+
+	if e.Len() < 1 {
+		return allEventNames
+	}
+
+	for eventName := range e.events {
+		allEventNames = append(allEventNames, eventName)
+	}
+
+	return allEventNames
+}
+
+// Sets maximum number of event listeners for an EventEmitter.
+func (e *EventEmitter[T]) SetMaxEventListeners(maxListeners int32) {
+	atomic.StoreInt32(&e.maxEventListeners, maxListeners)
+}
+
+// Gets maximum number of event listeners for an EventEmitter.
+func (e *EventEmitter[T]) GetMaxEventListeners() int32 {
+	return atomic.LoadInt32(&e.maxEventListeners)
 }
