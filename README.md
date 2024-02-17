@@ -7,7 +7,7 @@
 
 # Govents
 
-A small package that implements NodeJS like events construct in Go, with support for generics.
+A small package that implements the NodeJS like Event Emitter API, which provides Node like event constructs in Go with support for generics.
 
 Go 1.18 or newer version is required; the full documentation is at [https://pkg.go.dev/github.com/ghoshRitesh12/govents](https://pkg.go.dev/github.com/ghoshRitesh12/govents)
 
