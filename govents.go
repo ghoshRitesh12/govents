@@ -33,13 +33,9 @@ func NewEventEmitter[T comparable]() *EventEmitter[T] {
 		emux:              &sync.Mutex{},
 		events:            make(map[string]event[T]),
 	}
-
-	eventEmitter.ch = make(
-		chan eventChannel[T],
-	)
+	eventEmitter.ch = make(chan eventChannel[T])
 
 	go listenTo[T](eventEmitter)
-
 	return eventEmitter
 }
 
