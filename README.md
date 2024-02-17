@@ -1,3 +1,10 @@
+<p align="center">
+  <img
+    src="https://github.com/ghoshRitesh12/govents/assets/101876769/a881784e-681f-4cc5-9bcb-7cd0ab7fae2d"
+    alt="montre_go"
+  />
+</p>
+
 # Govents
 
 A small package that implements NodeJS like events construct in Go, with support for generics.
