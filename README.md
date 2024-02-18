@@ -18,10 +18,12 @@
 	</span>
 	&nbsp;
 	<span>
-		<img 
-			alt="Dynamic XML Badge" 
-			src="https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Friteshghosh.hashnode.dev%2Frss.xml&query=%2F%2Frss%2Fchannel%2Fitem%5B1%5D%2Ftitle&style=social&logoColor=%2389EBFF&label=Article&color=%2389EBFF&link=https%3A%2F%2Friteshghosh.hashnode.dev%2Fgovents-nodejs-like-event-emitter-for-go"
-		>
+		<a href="https://riteshghosh.hashnode.dev/govents-nodejs-like-event-emitter-for-go">
+			<img 
+				alt="Dynamic XML Badge" 
+				src="https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Friteshghosh.hashnode.dev%2Frss.xml&query=%2F%2Frss%2Fchannel%2Fitem%5B1%5D%2Ftitle&style=social&logoColor=%2389EBFF&label=Article&color=%2389EBFF&link=https%3A%2F%2Friteshghosh.hashnode.dev%2Fgovents-nodejs-like-event-emitter-for-go"
+			>
+		</a>
 	</span>
 	&nbsp;
 	<span>
