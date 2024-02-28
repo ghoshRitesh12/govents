@@ -32,6 +32,14 @@
 			alt="Go Reference"
 		/>
 	</span>
+	<span>
+		<a href="https://goreportcard.com/report/github.com/ghoshRitesh12/govents">
+			<img
+				src="https://goreportcard.com/badge/github.com/ghoshRitesh12/govents"
+				alt="Go Report Card"
+			/>
+		</a>
+	</span>
 </p>
 
 A small package that implements the NodeJS like Event Emitter API, which provides Node like event constructs in Go with support for generics.
